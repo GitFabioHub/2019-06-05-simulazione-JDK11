@@ -7,7 +7,10 @@ package it.polito.tdp.crimes;
 import java.net.URL;
 import java.util.ResourceBundle;
 
+import org.jgrapht.Graphs;
+
 import it.polito.tdp.crimes.model.Model;
+import it.polito.tdp.crimes.model.Simulazione;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -25,13 +28,13 @@ public class FXMLController {
     private URL location;
 
     @FXML // fx:id="boxAnno"
-    private ComboBox<?> boxAnno; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxAnno; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxMese"
-    private ComboBox<?> boxMese; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxMese; // Value injected by FXMLLoader
 
     @FXML // fx:id="boxGiorno"
-    private ComboBox<?> boxGiorno; // Value injected by FXMLLoader
+    private ComboBox<Integer> boxGiorno; // Value injected by FXMLLoader
 
     @FXML // fx:id="btnCreaReteCittadina"
     private Button btnCreaReteCittadina; // Value injected by FXMLLoader
@@ -47,11 +50,46 @@ public class FXMLController {
 
     @FXML
     void doCreaReteCittadina(ActionEvent event) {
+    	txtResult.clear();
+    	int anno=0;
+    	anno=boxAnno.getValue();
+    	
+    	if (anno==0) {
+    		txtResult.appendText("Inserisci anno");
+    				 return;
+    	}
+    	model.creaGrafo(anno);
+    	for(int i:model.getGrafo().vertexSet()) {
+    		txtResult.appendText(String.format("\n\nVicini del distretto %d \n", i));
+    		for(Integer e:Graphs.neighborListOf(this.model.getGrafo(), i)) {
+    			txtResult.appendText(String.format("Distretto: #%d distanza in Km: %f\n",e,this.model.getGrafo().getEdgeWeight(this.model.getGrafo().getEdge(i, e)) ));
+    		}
+    	}
+    	
+    	
+    	for(int i=1;i<13;i++) {
+    		boxMese.getItems().add(i);
+    	}
+    	for(int i=1;i<30;i++) {
+    		boxGiorno.getItems().add(i);
+    	}
 
     }
 
     @FXML
     void doSimula(ActionEvent event) {
+    	
+    	int giorno=boxGiorno.getValue();
+    	int mese=boxMese.getValue();
+    	int NA=Integer.parseInt(txtN.getText());
+    	this.model.setGiorno(giorno);
+    	this.model.setMese(mese);
+    	Simulazione s=new Simulazione();
+    	s.setNA(NA);
+    	s.init(this.model);
+    	s.run();
+    	txtResult.appendText("Numero casi mal gestiti: "+s.getCasiMalGestiti());
+    	
 
     }
 
@@ -69,5 +107,6 @@ public class FXMLController {
     
     public void setModel(Model model) {
     	this.model = model;
+    	boxAnno.getItems().addAll(model.getAnni());
     }
 }
