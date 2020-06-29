@@ -7,7 +7,7 @@ public class AgenteVelocita {
 	private Agente a;
 	private Duration durata;
 	public AgenteVelocita(Agente a, Duration durata) {
-		super();
+	
 		this.a = a;
 		this.durata = durata;
 	}

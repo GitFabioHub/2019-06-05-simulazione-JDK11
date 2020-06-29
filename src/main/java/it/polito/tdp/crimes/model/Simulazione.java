@@ -14,7 +14,6 @@ import it.polito.tdp.crimes.model.Evento.Type;
 public class Simulazione {
 	
 	private int NA=5;
-	private double VELOCITA=60;
 	private final Duration TEMPO_STANDARD=Duration.ofHours(2);
 	private final Duration TIMEOUT=Duration.ofMinutes(15);
 	private final LocalTime oraInizio=LocalTime.of(00, 00);
@@ -44,12 +43,11 @@ public class Simulazione {
 		attesa=new PriorityQueue<>();
 		agentiDisponibili=NA;
 		int distretto=model.distrettoBuono();
-		int i=0;
 		this.model=model;
 		
-		while(i<NA) {
+		for(int j=0;j<NA;j++) {
 			agenti.add(new Agente(distretto));	
-			i++;
+			
 		}
 		for(Crimine c :crimini) {
 			Evento e =new Evento(Type.NUOVO_CRIMINE,c.getData(),null,c);
@@ -87,20 +85,24 @@ public class Simulazione {
 			Crimine prossimo=attesa.poll();
 			if(prossimo!=null)
 				this.agentiDisponibili--;
+			Agente a=this.bestAgente(prossimo.getDistretto());
+			double distanza=this.model.getGrafo().getEdgeWeight(this.model.getGrafo().getEdge(prossimo.getDistretto(), a.getDistretto()));
+			Duration durata=Duration.ofSeconds((long) ((distanza/60)*3600));
 			
 			
-			AgenteVelocita agent=this.bestAgente(c.getDistretto());
-			agent.getA().setStato(Agente.Stato.IN_VIAGGIO);
-			Evento e3=new Evento(Type.ARRIVO_AGENTE,e.getTime().plus(agent.getDurata()),agent.getA(),prossimo);
+			this.bestAgente(prossimo.getDistretto()).setStato(Agente.Stato.IN_VIAGGIO);
+			Evento e3=new Evento(Type.ARRIVO_AGENTE,e.getTime().plus(durata),a,prossimo);
 			queue.add(e3);	
 			break;
 		case ARRIVO_AGENTE:
 			
 			Crimine cr=e.getCrimine();
+			e.getAgente().setDistretto(cr.getDistretto());
 			if(cr.getStato()==Stato.MALGESTITO) {
 				e.getAgente().setStato(Agente.Stato.DISPONIBILE);
 				Evento e4=new Evento(Type.AGENTE_DISPONIBILE,e.getTime(),null,null);
 				queue.add(e4);
+				this.agentiDisponibili++;
 			}
 			else {
 				if(cr.getStato()==Stato.GESTIRE) {
@@ -136,7 +138,9 @@ public class Simulazione {
 		case PROCESSATO:
 			
 			e.getCrimine().setStato(Stato.GESTITO);
-			e.getAgente().setStato(it.polito.tdp.crimes.model.Agente.Stato.DISPONIBILE);
+			e.getAgente().setStato(Agente.Stato.DISPONIBILE);
+			this.agentiDisponibili++;
+			attesa.remove(e.getCrimine());
 			Evento e6=new Evento(Type.AGENTE_DISPONIBILE,e.getTime(),e.getAgente(),null);
 			queue.add(e6);
 			break;
@@ -158,35 +162,30 @@ public class Simulazione {
 	
 	
 	
-	public AgenteVelocita bestAgente(int distretto) {
+	public Agente bestAgente(int distretto) {
 		
 		List<Agente>list=new ArrayList<>();
-		for(Agente a:this.agenti) {
-			
-			if(a.getStato()==Agente.Stato.DISPONIBILE) {
+		for(Agente a:this.agenti) 
+			if(a.isDisponibile())
 				list.add(a);
-			}
-		}
 		
-		Agente best=null;
-		double shortestPath=10000000;
+		Agente best = null;
+		double shortestPath=Double.MAX_VALUE;
 		for(Agente a:list) {
-			
 			if(a.getDistretto()==distretto) {
-				
-			best=a;
-			shortestPath=0;
+			    best=a;
+			    shortestPath=0;
 			}else {
 				
 			double distanza=this.model.getGrafo().getEdgeWeight(this.model.getGrafo().getEdge(distretto, a.getDistretto()));
 			if (distanza<shortestPath) {
 				best=a;
 				shortestPath=distanza;
+				
 			}		
 			}
 		}
-		Duration durata=Duration.ofMillis((long) ((shortestPath/this.VELOCITA)*3600000));
-		return new AgenteVelocita(best,durata);
+		return  best;
 		
 	}
 	public int getCasiMalGestiti() {

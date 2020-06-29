@@ -27,6 +27,10 @@ public class Agente {
 	}
 	
 	
-	
+	public boolean isDisponibile() {
+		if (this.stato==Stato.DISPONIBILE)
+			return true;
+			else return false;
+	}
 
 }
